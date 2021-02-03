@@ -51,7 +51,7 @@ const app = new Vue({
     },
     mounted() {
         const peer = new Peer({ initiator: false, trickle: false });
-        const socket = io('http://localhost:3000/');
+        const socket = io('https://agile-island-59573.herokuapp.com/');
         this.socket = socket;
         this.peer = peer;
         socket.on('incoming-signal', (data) => {
