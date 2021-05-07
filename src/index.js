@@ -51,7 +51,7 @@ const app = new Vue({
     },
     mounted() {
         const peer = new Peer({ initiator: false, trickle: false });
-        const socket = io('https://agile-island-59573.herokuapp.com/');
+        const socket = io('https://app-b0a2c701-bbde-44b6-8def-81d160ec13f9.cleverapps.io/');
         this.socket = socket;
         this.peer = peer;
         socket.on('incoming-signal', (data) => {
