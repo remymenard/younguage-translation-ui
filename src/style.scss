@@ -121,7 +121,18 @@ a {
 }
 
 .subtitles {
+  margin-top: 48px;
+  font-size: 20px;
+  line-height: 30px;
   div {
     display: inline-block;
   }
+}
+
+.highlight {
+  background-color: $primary;
+}
+
+.block-important {
+  display: block !important;
 }

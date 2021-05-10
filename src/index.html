@@ -13,7 +13,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tachyons/4.11.1/tachyons.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
     <link rel="stylesheet" href="style.scss">
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.5.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.5.0/firebase-analytics.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.5.0/firebase-firestore.js"></script>
@@ -46,7 +45,9 @@
                         </button>
                     </div>
                     <div class="subtitles black">
-                      <div v-for="(subtitle, index) in subtitles" ><span v-bind:class="{'pointer': isSelected(index) }" @click="openTranslation(subtitle, index)" v-html="subtitle"></span></div>
+                      <div v-for="(subtitle, index) in subtitles" v-bind:class="{'block-important': shouldJump(subtitle)}" >
+                        <span class="dib" v-if="!shouldJump(subtitle)" v-bind:class="{'highlight': isSelected(index) }" @click="openTranslation(subtitle, index)" v-html="subtitle"></span>
+                      </div>
                     </div>
                 </div>
             </transition>
@@ -77,8 +78,11 @@
               </div>
               <div id="words">
                 <div class='flex flex-column justify-center items-center'>
-                  <div id="untranslated" v-html="selectedWord"></div>
-                  <div id="translated" v-html="wordTranslation"></div>
+                  <div id="untranslated">{{selectedWord}}</div>
+                  <div id="translated">
+                    {{wordTranslation}}
+                    <vue-loaders v-if="wordTranslation === ''" name="ball-beat" color="black" scale="0.5"></vue-loaders>
+                  </div>
                 </div>
               </div>
               <div class="tile" id="cloud">

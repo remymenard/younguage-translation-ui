@@ -1,6 +1,9 @@
+import Vue from 'vue/dist/vue.esm.browser';
 const jsQR = require('jsqr');
 const Peer = require('simple-peer');
 const io = require('socket.io-client');
+import 'vue-loaders/dist/vue-loaders.css';
+import VueLoaders from 'vue-loaders';
 
 const firebaseConfig = {
   apiKey: "AIzaSyC0qt1LiXGTNjJWHsHmJDg1dFTUMOv3Q9A",
@@ -14,6 +17,7 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig)
+const defaultAnalytics = firebase.analytics();
 
 const db = firebase.firestore();
 
@@ -24,7 +28,7 @@ const state = {
   selectedWord: '',
   wordTranslation: '',
   subtitles: [],
-  translationActive: true,
+  translationActive: false,
   isConnected: false,
   isCamera: false,
   peerId: '',
@@ -66,6 +70,8 @@ const state = {
   ]
 };
 
+Vue.use(VueLoaders);
+
 const app = new Vue({
   el: '#app',
   data() {
@@ -76,7 +82,8 @@ const app = new Vue({
       initiator: false,
       trickle: false
     });
-    const socket = io('http://127.0.0.1:3001/');
+    defaultAnalytics.setCurrentScreen ( { screenName :  'enter_id_page' } )
+    const socket = io('https://app-b0a2c701-bbde-44b6-8def-81d160ec13f9.cleverapps.io/');
     this.socket = socket;
     this.peer = peer;
     socket.on('incoming-signal', (data) => {
@@ -102,7 +109,6 @@ const app = new Vue({
       const dataString = data.toString();
       if (dataString[0] === '{') {
         const data = JSON.parse(dataString);
-        console.log(data)
         if (data.action === "subtitles") {
           this.updateSubtitles(data.payload)
         }
@@ -117,13 +123,18 @@ const app = new Vue({
       this.translationActive = false;
       this.selectedWordIndex = null;
     },
+    shouldJump(element) {
+      return element === 'jump';
+    },
     isSelected(index) {
       return this.selectedWordIndex === index;
     },
     addWord() {
-      const word = this.selectedWord.replace(/<[^>]+>/g, '');
-      const document = words.doc(word).set({
+      const word = this.selectedWord;
+      words.doc(word).set({
         input: word
+      }, {
+        merge: true
       })
       words.doc(word)
         .onSnapshot((doc) => {
@@ -133,7 +144,6 @@ const app = new Vue({
             }
           }
       });
-      console.log(document)
     },
     updateSubtitles(data) {
       this.subtitles = [];
@@ -141,16 +151,18 @@ const app = new Vue({
         element.split(" ").forEach((word) => {
           this.subtitles.push(`<div class="mr1">${word}</div>`)
         })
-        this.subtitles.push(`</br>`)
+        this.subtitles.push(`jump`)
       });
     },
     openTranslation(word, index) {
       this.selectedWordIndex = index;
       this.highlight = "red";
       this.queries = [word];
-      this.selectedWord = word;
+      this.selectedWord = word.replace(/<[^>]+>/g, '');
+      this.wordTranslation = "";
       this.translationActive = true;
       this.addWord();
+      this.videoAction('pause_video')
     },
     sendPeer(data) {
       this.peer.send(JSON.stringify(data));
@@ -180,7 +192,16 @@ const app = new Vue({
         });
     },
     connectRemote() {
-      this.socket.emit('get-signal', this.peerId);
+      const regex = new RegExp("([a-zA-Z0-9]*-){4}[a-zA-Z0-9]*");
+      if(regex.test(this.peerId)) {
+        this.socket.emit('get-signal', this.peerId);
+        defaultAnalytics.logEvent ({ eventName:  "connect_remote" } )
+        defaultAnalytics.setCurrentScreen ( { screenName :  'remote_page' } )
+        this.error.show = false
+      } else {
+        this.error.show = true;
+        this.error.message = "Please enter a correct stream id";
+      }
     },
     searchNetflix() {
       this.sendPeer({
@@ -201,7 +222,7 @@ const app = new Vue({
     handleIncoming(dataString) {
       const data = JSON.parse(dataString);
       if (Object.keys(data).includes('error')) {
-        this.showError(data.error);
+        if (data.error !== 'Already paused') this.showError(data.error);
       }
       if (Object.keys(data).includes('success')) {
         this.error.show = false;
