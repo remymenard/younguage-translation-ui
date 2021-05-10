@@ -6,22 +6,26 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="theme-color" content="#FF4139"/>
     <meta name="google-site-verification" content="g39bS1JK9VKWz4H7t6eZTOhnd_ebT_gQZQvDdvVT4tU" />
-    <title>Netflix Remote</title>
+    <title>Younguage</title>
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat|Muli">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tachyons/4.11.1/tachyons.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.scss">
     <script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.5.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.5.0/firebase-analytics.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.5.0/firebase-firestore.js"></script>
+
 </head>
-<body class="bg-dark-gray">
-    <div id="app" class="white bg-dark-gray vh-100">
-        <section class="tc">
-            <div class="sans-serif f2 ff-m bg-red b">
-                <button class="fr pa3 outline-0 bn bg-black-50 white o-50 glow" @click='refreshWindow'><i class="material-icons">cached</i></button>
-                <div class="pv3">
-                    Netflix Remote <i class="material-icons">settings_remote</i>
+<body class="bg-white">
+    <div id="app" class="white bg-white vh-100">
+        <section class="tc h-75">
+            <div class="sans-serif f2 ff-m bg-navbar b">
+                <button class="fr pa3 outline-0 bn bg-transparent black o-50 glow" @click='refreshWindow'><i class="material-icons pointer">cached</i></button>
+                <div class="pv3 black flex items-center pl4 f3">
+                  <img src="./logo.png" class="logo mr3"> Younguage
                 </div>
             </div>
             <transition enter-active-class="animated fadeIn" enter-active-class="animated fadeOut">
@@ -30,44 +34,64 @@
                     </div>
                 </transition>
             <transition enter-active-class="animated fadeIn" enter-active-class="animated fadeOut">
-                <div class="pv2 bg-light-green tc dark-green" v-show="peerConnected">
+                <div class="pv2 bg-transparent tc light-silver" v-show="peerConnected">
                     Connected
                 </div>
             </transition>
             <transition enter-active-class="animated slideInLeft" enter-active-class="animated slideOutRight">
                 <div v-show="peerConnected" class="pv3">
                     <div class="grid ph2">
-                        <button class="bn db br2 pa2 tc outline-0 white bg-red jump" v-for="ctrl, index in controls" :key="index" @click='videoAction(ctrl.action)'>
+                        <button class="bn db br2 pa2 tc outline-0 black button-blue jump" v-for="ctrl, index in controls" :key="index" @click='videoAction(ctrl.action)'>
                             <i class="material-icons f1">{{ ctrl.icon }}</i>
                         </button>
                     </div>
-                    <div class="subtitles">
-                      <span v-for="subtitle in subtitles" ><span v-html="subtitle"></span></span>
+                    <div class="subtitles black">
+                      <div v-for="(subtitle, index) in subtitles" ><span v-bind:class="{'pointer': isSelected(index) }" @click="openTranslation(subtitle, index)" v-html="subtitle"></span></div>
                     </div>
                 </div>
             </transition>
             <transition enter-active-class="animated fadeIn" enter-active-class="animated fadeOut">
-                <div v-show="!peerConnected">
+                <div v-show="!peerConnected" class="flex items-center justify-center flex-column h-100">
                     <button class="bn mv2 pv3 w5 br2 o-60 glow pointer ttu bg-light-silver black flex justify-center items-center center" @click="scanCode">
                         <span>Scan now</span>
                         <i class="ml2 material-icons">camera_alt</i>
                     </button>
                     <transition enter-active-class="animated flipInX" enter-active-class="animated flipOutX">
-                        <video ref="video" class="w5 h5 br2" v-show="isCamera"></video>
+                      <video ref="video" class="w5 h5 br2" v-show="isCamera"></video>
                     </transition>
                     <canvas ref="canvas" hidden></canvas>
-                    <input type="text" class="bn db center w-90 br2 pa2 tc outline-0 o-90 glow" placeholder="Peer ID" v-model="peerId"/>
-                    <button class="bn mv2 pv3 w5 br2 grow pointer ttu bg-green white" @click='connectRemote'>Connect</button>
+                    <span class="light-silver mt5">Or enter directly the ID:</span>
+                    <input v-model="peerId" class="input-reset ba b--black-20 pa2 mb2 db w-40" type="text">
+                    <button class="bn mv2 pv3 w5 br2 grow pointer ttu button-blue black" @click='connectRemote'>Connect</button>
 
                 </div>
             </transition>
         </section>
-        <footer class="absolute tc pv2 bottom-0 w-100">
-            <a href="https://github.com/butttons/netflix-remote" target="_blank">
-                <img src="./github.png">
-            </a>
-        </footer>
+
+        <transition name="fade">
+          <div id="translation" v-show="translationActive">
+              <div class='divTranslation'>
+
+                <div @click='closeModal' id="cross">
+                <span class="material-icons pointer">close</span>
+              </div>
+              <div id="words">
+                <div class='flex flex-column justify-center items-center'>
+                  <div id="untranslated" v-html="selectedWord"></div>
+                  <div id="translated" v-html="wordTranslation"></div>
+                </div>
+              </div>
+              <div class="tile" id="cloud">
+                <div class="icon-container not-saved">
+                  <i class="icon off far fa-bookmark"></i>
+                  <i class="icon on fa fa-bookmark"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </transition>
     </div>
+
     <script src="./index.js"></script>
-</body>
+  </body>
 </html>
