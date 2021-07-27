@@ -146,6 +146,7 @@ const app = new Vue({
       });
     },
     updateSubtitles(data) {
+      this.closeModal();
       this.subtitles = [];
       data.forEach(element => {
         element.split(" ").forEach((word) => {
